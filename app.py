@@ -46,7 +46,7 @@ if uploaded_file is not None:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Sos un analista experto en series temporales."},
                     {"role": "user", "content": prompt}
