@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import time
+import openai
+import os
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 st.set_page_config(page_title="Forecast App", layout="centered")
 
@@ -18,7 +23,6 @@ if uploaded_file is not None:
     if st.button("🚀 Analizar con Chronos + GPT (simulado)"):
         with st.spinner("Procesando datos con Chronos..."):
             time.sleep(2)  # Simula tiempo de procesamiento
-            # Simulamos una predicción
             forecast_result = {
                 "item": "Ventas",
                 "predicción próximos 5 días": [102, 108, 115, 112, 119]
@@ -28,12 +32,29 @@ if uploaded_file is not None:
         st.subheader("🔮 Resultados de la predicción")
         st.json(forecast_result)
 
-        st.subheader("🧠 Explicación generada")
-        explanation = f"""
-        Según los datos proporcionados, se realizó una predicción de las ventas para los próximos 5 días.
-        Se observa una tendencia levemente creciente. Esto podría estar relacionado con un aumento estacional
-        o una campaña de marketing reciente.
+        st.subheader("🧠 Explicación generada con ChatGPT")
 
-        Recordá que esta es una simulación. Pronto podrás conectarte con Amazon Chronos y ChatGPT de verdad.
+        # Armamos el prompt
+        prompt = f"""
+        Estos son los resultados de una predicción de series temporales: {forecast_result}
+        El usuario proporcionó esta descripción del contexto: "{description}"
+
+        Explicá en lenguaje natural qué significan los resultados, si hay alguna tendencia o patrón, y qué puede concluir una persona que no sabe de ciencia de datos.
         """
-        st.write(explanation)
+
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",  # o "gpt-3.5-turbo" si tenés acceso limitado
+                messages=[
+                    {"role": "system", "content": "Sos un analista experto en series temporales."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+
+            explanation = response["choices"][0]["message"]["content"]
+            st.write(explanation)
+
+        except Exception as e:
+            st.error("Error al conectarse con OpenAI:")
+            st.error(e)
