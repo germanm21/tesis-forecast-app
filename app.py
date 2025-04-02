@@ -1,17 +1,17 @@
 import streamlit as st
 import pandas as pd
 import time
-import openai
 import os
 from dotenv import load_dotenv
+from openai import OpenAI
+
+# Cargar variables de entorno (solo necesario en local)
 load_dotenv()
 
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# Inicializar cliente de OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Forecast App", layout="centered")
-
 st.title("📈 Forecast con Amazon Chronos + GPT")
 st.markdown("Subí tu CSV, explicá qué significan los datos, y obtené un análisis automático.")
 
@@ -25,7 +25,7 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar con Chronos + GPT (simulado)"):
         with st.spinner("Procesando datos con Chronos..."):
-            time.sleep(2)  # Simula tiempo de procesamiento
+            time.sleep(2)
             forecast_result = {
                 "item": "Ventas",
                 "predicción próximos 5 días": [102, 108, 115, 112, 119]
@@ -37,7 +37,6 @@ if uploaded_file is not None:
 
         st.subheader("🧠 Explicación generada con ChatGPT")
 
-        # Armamos el prompt
         prompt = f"""
         Estos son los resultados de una predicción de series temporales: {forecast_result}
         El usuario proporcionó esta descripción del contexto: "{description}"
@@ -46,8 +45,8 @@ if uploaded_file is not None:
         """
 
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",  # o "gpt-3.5-turbo" si tenés acceso limitado
+            response = client.chat.completions.create(
+                model="gpt-4",
                 messages=[
                     {"role": "system", "content": "Sos un analista experto en series temporales."},
                     {"role": "user", "content": prompt}
@@ -55,7 +54,7 @@ if uploaded_file is not None:
                 temperature=0.7
             )
 
-            explanation = response["choices"][0]["message"]["content"]
+            explanation = response.choices[0].message.content
             st.write(explanation)
 
         except Exception as e:
