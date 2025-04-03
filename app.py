@@ -39,7 +39,11 @@ prediction_length = st.slider("🔢 ¿Cuántos períodos querés predecir?", min
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
-        "parameters": {"prediction_length": prediction_length}
+        "parameters": {
+            "prediction_length": prediction_length,
+            "output_types": ["mean", "quantiles"],
+            "quantiles": ["0.25", "0.5", "0.75"]
+        }
     }
 
     response = sagemaker_runtime.invoke_endpoint(
@@ -50,24 +54,24 @@ def predict_with_sagemaker(values, prediction_length=5):
 
     return json.loads(response["Body"].read())
 
-# Función para graficar
+# Función para graficar con intervalos p25-p75
 
-def plot_forecast(series, forecast, std_dev=5):
-    forecast = np.array(forecast)
+def plot_forecast_with_percentiles(series, forecast_dict):
+    mean = np.array(forecast_dict.get("mean", []))
+    p25 = np.array(forecast_dict.get("quantiles", {}).get("0.25", []))
+    p75 = np.array(forecast_dict.get("quantiles", {}).get("0.75", []))
+
     x_orig = list(range(len(series)))
-    x_pred = list(range(len(series), len(series) + len(forecast)))
-
-    lower_bound = forecast - 1.65 * std_dev
-    upper_bound = forecast + 1.65 * std_dev
+    x_pred = list(range(len(series), len(series) + len(mean)))
 
     plt.figure(figsize=(10, 5))
     plt.plot(x_orig, series, label="Serie original", color="blue")
-    plt.plot(x_pred, forecast, label="Predicción", color="orange")
-    plt.fill_between(x_pred, lower_bound, upper_bound, color="orange", alpha=0.3, label="Intervalo 90%")
+    plt.plot(x_pred, mean, label="Predicción (media)", color="orange")
+    plt.fill_between(x_pred, p25, p75, color="orange", alpha=0.3, label="Intervalo 25%-75%")
     plt.legend()
     plt.xlabel("Período")
     plt.ylabel("Valor")
-    plt.title("Predicción con intervalo de confianza (simulado)")
+    plt.title("Predicción con intervalo intercuartílico")
     st.pyplot(plt)
 
 # Ejecución principal
@@ -107,26 +111,22 @@ if uploaded_file is not None:
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
             # Validar formato del resultado
-            forecast_values = forecast_result[0] if isinstance(forecast_result, list) else forecast_result.get("mean", [])
-
-            if isinstance(forecast_values, dict):
-                forecast_values = list(forecast_values.values())
-
-            if not forecast_values:
-                st.warning("⚠️ No se encontraron valores numéricos en la predicción para graficar.")
+            if not forecast_result:
+                st.warning("⚠️ No se encontraron valores en la predicción.")
             else:
-                st.subheader("📈 Predicción")
-                st.write(forecast_values)
+                mean_values = forecast_result.get("mean", [])
+                st.subheader("📈 Predicción (media)")
+                st.write(mean_values)
 
                 st.subheader("📊 Visualización")
-                plot_forecast(series, forecast_values, std_dev=np.std(series[-prediction_length:]))
+                plot_forecast_with_percentiles(series, forecast_result)
 
                 # Generar informe explicativo
                 st.info("🧠 Generando informe explicativo...")
                 explanation_prompt = f"""
                 Se hizo una predicción de series temporales con estos datos:
                 Serie original: {', '.join([str(x) for x in series[-10:]])}
-                Predicción: {', '.join([str(x) for x in forecast_values])}
+                Predicción (media): {', '.join([str(x) for x in mean_values])}
 
                 Contexto: {context}
                 Objetivo del usuario: {goal}
