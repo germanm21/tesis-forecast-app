@@ -20,7 +20,7 @@ sagemaker_runtime = boto3.client(
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
 )
 
-ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-032604"
+ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-120703"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
