@@ -92,9 +92,26 @@ if uploaded_file is not None:
             st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
-            # Mostrar resultado crudo (como antes)
-            st.subheader("📈 Resultado crudo de la predicción")
-            st.write(forecast_result)
+            # Mostrar tabla legible (ocultamos el diccionario crudo)
+            try:
+                pred = forecast_result["predictions"][0]
+                q10 = pred.get("0.1", [])
+                q50 = pred.get("0.5", [])
+                q90 = pred.get("0.9", [])
+
+                df_pred = pd.DataFrame({
+                    "Día": list(range(1, len(q50)+1)),
+                    "Criterio conservador (p10)": q10,
+                    "Estimación (p50)": q50,
+                    "Criterio optimista (p90)": q90
+                })
+
+                st.subheader("📈 Predicción")
+                st.dataframe(df_pred, use_container_width=True)
+
+            except Exception as e:
+                st.warning("No se pudo generar la tabla de predicción.")
+                st.error(e)
 
             # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
