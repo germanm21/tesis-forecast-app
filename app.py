@@ -32,6 +32,15 @@ uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores
 context = st.text_area("📝 Explicá el contexto del problema")
 goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
 
+# Nuevo slider para seleccionar prediction_length
+prediction_length = st.slider(
+    "🔢 ¿Cuántos períodos querés predecir?",
+    min_value=1,
+    max_value=30,
+    value=5,
+    help="Elegí la cantidad de períodos futuros que querés estimar."
+)
+
 # Función para predecir desde SageMaker
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
@@ -79,9 +88,9 @@ if uploaded_file is not None:
             # Extraer la serie numérica
             series = df.iloc[:, 1].dropna().astype(float).tolist()
 
-            # Predecir con Chronos desde SageMaker
+            # Predecir con Chronos desde SageMaker usando el valor elegido
             st.info("🔮 Prediciendo valores futuros...")
-            forecast_result = predict_with_sagemaker(series, prediction_length=5)
+            forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
             st.subheader("📈 Predicción")
             st.write(forecast_result)
