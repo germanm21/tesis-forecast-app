@@ -4,6 +4,8 @@ import os
 import json
 import boto3
 import requests
+import matplotlib.pyplot as plt
+import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -31,9 +33,9 @@ st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia arti
 uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
 context = st.text_area("📝 Explicá el contexto del problema")
 goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
+prediction_length = st.slider("🔢 ¿Cuántos períodos querés predecir?", min_value=1, max_value=30, value=5)
 
 # Función para predecir desde SageMaker
-
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
@@ -48,6 +50,27 @@ def predict_with_sagemaker(values, prediction_length=5):
 
     return json.loads(response["Body"].read())
 
+# Función para graficar
+
+def plot_forecast(series, forecast, std_dev=5):
+    forecast = forecast[0] if isinstance(forecast, list) else forecast
+    x_orig = list(range(len(series)))
+    x_pred = list(range(len(series), len(series) + len(forecast)))
+
+    forecast = np.array(forecast)
+    lower_bound = forecast - 1.65 * std_dev
+    upper_bound = forecast + 1.65 * std_dev
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x_orig, series, label="Serie original", color="blue")
+    plt.plot(x_pred, forecast, label="Predicción", color="orange")
+    plt.fill_between(x_pred, lower_bound, upper_bound, color="orange", alpha=0.3, label="Intervalo 90%")
+    plt.legend()
+    plt.xlabel("Período")
+    plt.ylabel("Valor")
+    plt.title("Predicción con intervalo de confianza (simulado)")
+    st.pyplot(plt)
+
 # Ejecución principal
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -56,7 +79,7 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar serie temporal") and context and goal:
         try:
-            # Usamos ChatGPT para interpretar el objetivo y generar contexto
+            # Interpretar el contexto con IA
             st.info("✍️ Interpretando contexto...")
             user_prompt = f"""
             El usuario subió esta serie temporal:
@@ -74,20 +97,24 @@ if uploaded_file is not None:
                     {"role": "user", "content": user_prompt}
                 ]
             ).choices[0].message.content
-            st.markdown("#### 🤖 GPT-4o interpreta el contexto:")
+            st.markdown("#### 🤖 Interpretación del modelo:")
             st.write(gpt_summary)
-        
+
             # Extraer la serie numérica
             series = df.iloc[:, 1].dropna().astype(float).tolist()
 
-            # Predecir con Chronos desde SageMaker
+            # Predecir desde SageMaker
             st.info("🔮 Prediciendo valores futuros...")
-            forecast_result = predict_with_sagemaker(series, prediction_length=5)
+            forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
             st.subheader("📈 Predicción")
             st.write(forecast_result)
 
-            # Explicación de los resultados
+            # Graficar resultados
+            st.subheader("📊 Visualización")
+            plot_forecast(series, forecast_result[0], std_dev=np.std(series[-prediction_length:]))
+
+            # Generar informe explicativo
             st.info("🧠 Generando informe explicativo...")
             explanation_prompt = f"""
             Se hizo una predicción de series temporales con estos datos:
@@ -98,6 +125,7 @@ if uploaded_file is not None:
             Objetivo del usuario: {goal}
 
             Generá un informe simple y claro en español para alguien no experto.
+            Indicá si hay tendencias, estacionalidad o anomalías.
             """
 
             explanation = client.chat.completions.create(
