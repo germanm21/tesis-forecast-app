@@ -92,7 +92,9 @@ if uploaded_file is not None:
             st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
-            # (El resultado no se muestra al usuario)
+            # Mostrar resultado crudo (como antes)
+            st.subheader("📈 Resultado crudo de la predicción")
+            st.write(forecast_result)
 
             # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
