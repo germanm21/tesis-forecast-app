@@ -33,7 +33,6 @@ context = st.text_area("📝 Explicá el contexto del problema")
 goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
 
 # Función para predecir desde SageMaker
-
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
@@ -89,9 +88,13 @@ if uploaded_file is not None:
 
             # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
+
+            serie_para_prompt = series if len(series) <= 120 else series[-120:]
+            serie_str = ', '.join([str(x) for x in serie_para_prompt])
+
             explanation_prompt = f"""
             Se hizo una predicción de series temporales con estos datos:
-            Serie original: {series[-10:]}
+            Serie original: {serie_str}
             Predicción: {forecast_result}
 
             Contexto: {context}
