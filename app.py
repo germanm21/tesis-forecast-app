@@ -41,13 +41,13 @@ prediction_length = st.slider(
     help="Elegí la cantidad de períodos futuros que querés estimar."
 )
 
-# Función para predecir desde SageMaker
+# Función para predecir desde SageMaker con configuración válida
+
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
-        "parameters": {
+        "configuration": {
             "prediction_length": prediction_length,
-            "output_types": ["mean", "quantiles"],
             "quantiles": ["0.1", "0.5", "0.9"]
         }
     }
