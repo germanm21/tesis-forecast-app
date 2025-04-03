@@ -1,118 +1,116 @@
 import streamlit as st
 import pandas as pd
-import requests
 import os
+import json
+import boto3
+import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Cargar variables de entorno (local)
+# Cargar variables de entorno
 load_dotenv()
 
-# Inicializar cliente de OpenAI
+# Configurar clientes de OpenAI y AWS SageMaker
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+sagemaker_runtime = boto3.client(
+    "sagemaker-runtime",
+    region_name=os.getenv("AWS_REGION"),
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+)
+
+ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-032604"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
-st.title("📈 Forecast con Chronos-Bolt + GPT-4o")
+st.title("📈 Forecast con Chronos (SageMaker) + GPT")
 st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia artificial lo analice.")
 
-# Subida de archivo CSV
+# Cargar archivo CSV
 uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
-
-# Ingreso de contexto y objetivo
 context = st.text_area("📝 Explicá el contexto del problema")
 goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
 
-# Función para consultar Hugging Face Chronos-Bolt
-def query_chronos(prompt):
-    api_url = "https://api-inference.huggingface.co/models/amazon/chronos-bolt-base"
-    headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
-    payload = {"inputs": prompt}
+# Función para predecir desde SageMaker
 
-    response = requests.post(api_url, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()[0]['generated_text']
-    else:
-        raise Exception(f"Error de Hugging Face: {response.status_code} - {response.text}")
+def predict_with_sagemaker(values, prediction_length=5):
+    payload = {
+        "inputs": [{"target": values}],
+        "parameters": {"prediction_length": prediction_length}
+    }
 
-# Acción principal
+    response = sagemaker_runtime.invoke_endpoint(
+        EndpointName=ENDPOINT_NAME,
+        ContentType="application/json",
+        Body=json.dumps(payload)
+    )
+
+    return json.loads(response["Body"].read())
+
+# Ejecución principal
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("📊 Vista previa de los datos:")
     st.dataframe(df)
 
-    if st.button("🚀 Analizar" and context and goal):
-        with st.spinner("Generando prompt para Chronos con ChatGPT..."):
-            try:
-                # Paso 1: Crear prompt con ChatGPT
-                user_input = f"""
-                Tengo una serie temporal con estos datos:
-                {df.head(10).to_string(index=False)}
+    if st.button("🚀 Analizar serie temporal") and context and goal:
+        try:
+            # Usamos ChatGPT para interpretar el objetivo y generar contexto
+            st.info("✍️ Interpretando contexto con GPT-4o...")
+            user_prompt = f"""
+            El usuario subió esta serie temporal:
+            {df.head(10).to_string(index=False)}
 
-                Este es el contexto del problema: {context}
-                Este es el objetivo del usuario: {goal}
+            Contexto: {context}
+            Objetivo: {goal}
 
-                Por favor, generá un prompt en inglés en el formato correcto para que pueda usarlo con Chronos-Bolt de Amazon. No expliques, solo devolvé el prompt listo para usar.
-                """
-
-                chat_prompt = [
-                    {"role": "system", "content": "Sos un asistente experto en series temporales."},
-                    {"role": "user", "content": user_input}
+            ¿Podrías confirmar si los datos parecen válidos y sugerir qué podríamos predecir?
+            """
+            gpt_summary = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "Sos un analista experto en forecasting."},
+                    {"role": "user", "content": user_prompt}
                 ]
+            ).choices[0].message.content
+            st.markdown("#### 🤖 GPT-4o interpreta el contexto:")
+            st.write(gpt_summary)
+        
+            # Extraer la serie numérica
+            series = df.iloc[:, 1].dropna().astype(float).tolist()
 
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=chat_prompt,
-                    temperature=0.3
-                )
+            # Predecir con Chronos desde SageMaker
+            st.info("🔮 Prediciendo con Chronos (SageMaker)...")
+            forecast_result = predict_with_sagemaker(series, prediction_length=5)
 
-                chronos_prompt = response.choices[0].message.content
+            st.subheader("📈 Predicción de Chronos")
+            st.write(forecast_result)
 
-            except Exception as e:
-                st.error("❌ Error al generar el prompt con ChatGPT")
-                st.error(e)
-                st.stop()
+            # Explicación de los resultados
+            st.info("🧠 Generando informe explicativo con GPT-4o...")
+            explanation_prompt = f"""
+            Se hizo una predicción de series temporales con estos datos:
+            Serie original: {series[-10:]}
+            Predicción: {forecast_result}
 
-        with st.spinner("Obteniendo predicción de Chronos-Bolt..."):
-            try:
-                prediction = query_chronos(chronos_prompt)
-            except Exception as e:
-                st.error("❌ Error al consultar Chronos-Bolt")
-                st.error(e)
-                st.stop()
+            Contexto: {context}
+            Objetivo del usuario: {goal}
 
-        st.subheader("📈 Predicción generada por Chronos-Bolt")
-        st.code(prediction)
+            Generá un informe simple y claro en español para alguien no experto.
+            """
 
-        with st.spinner("Generando informe explicativo con GPT-4o..."):
-            try:
-                final_prompt = f"""
-                El usuario cargó esta serie temporal:
-                {df.head(10).to_string(index=False)}
+            explanation = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "Sos un analista que redacta informes claros y concisos para negocio."},
+                    {"role": "user", "content": explanation_prompt}
+                ]
+            ).choices[0].message.content
 
-                Su objetivo era: {goal}
-                Contexto del problema: {context}
+            st.subheader("🧾 Informe final generado con GPT-4o")
+            st.write(explanation)
 
-                Esta fue la predicción generada por Chronos-Bolt:
-                {prediction}
-
-                Por favor, generá un informe explicativo en español, simple, para alguien que no es experto en datos.
-                """
-
-                explanation_response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "Sos un analista experto que redacta informes claros y simples."},
-                        {"role": "user", "content": final_prompt}
-                    ],
-                    temperature=0.5
-                )
-
-                explanation = explanation_response.choices[0].message.content
-                st.subheader("🧠 Informe generado con GPT-4o")
-                st.write(explanation)
-
-            except Exception as e:
-                st.error("❌ Error al generar el informe con ChatGPT")
-                st.error(e)
-                st.stop()
+        except Exception as e:
+            st.error("❌ Ocurrió un error en el análisis")
+            st.error(e)
