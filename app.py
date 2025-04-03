@@ -41,15 +41,11 @@ prediction_length = st.slider(
     help="Elegí la cantidad de períodos futuros que querés estimar."
 )
 
-# Función para predecir desde SageMaker con configuración válida
-
+# Función para predecir desde SageMaker
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
-        "configuration": {
-            "prediction_length": prediction_length,
-            "quantiles": ["0.1", "0.5", "0.9"]
-        }
+        "parameters": {"prediction_length": prediction_length}
     }
 
     response = sagemaker_runtime.invoke_endpoint(
@@ -88,7 +84,7 @@ if uploaded_file is not None:
             ).choices[0].message.content
             st.markdown("#### 🤖 GPT-4o interpreta el contexto:")
             st.write(gpt_summary)
-
+        
             # Extraer la serie numérica
             series = df.iloc[:, 1].dropna().astype(float).tolist()
 
@@ -96,26 +92,7 @@ if uploaded_file is not None:
             st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
-            # Mostrar predicción en formato tabla clara
-            if "quantiles" in forecast_result:
-                q10 = forecast_result["quantiles"].get("0.1", [])
-                q50 = forecast_result["quantiles"].get("0.5", [])
-                q90 = forecast_result["quantiles"].get("0.9", [])
-
-                if len(q10) == len(q50) == len(q90):
-                    table_data = pd.DataFrame({
-                        "Día": list(range(1, len(q50) + 1)),
-                        "Criterio conservador (p10)": q10,
-                        "Estimación (p50)": q50,
-                        "Criterio optimista (p90)": q90
-                    })
-                    st.subheader("📈 Predicción")
-                    st.dataframe(table_data, use_container_width=True)
-                else:
-                    st.warning("La predicción no devolvió la misma cantidad de valores para todos los percentiles.")
-            else:
-                st.warning("La predicción no contiene cuantiles esperados.")
-                st.write(forecast_result)
+            # (El resultado no se muestra al usuario)
 
             # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
