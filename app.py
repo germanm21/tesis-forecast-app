@@ -4,6 +4,7 @@ import os
 import json
 import boto3
 import requests
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -56,6 +57,22 @@ def predict_with_sagemaker(values, prediction_length=5):
 
     return json.loads(response["Body"].read())
 
+# Función para graficar serie original y predicciones con bandas de confianza
+def plot_forecast_with_bands(original_series, q10, q50, q90):
+    plt.figure(figsize=(10, 5))
+    x_orig = list(range(len(original_series)))
+    x_forecast = list(range(len(original_series), len(original_series) + len(q50)))
+
+    plt.plot(x_orig, original_series, label="Serie original", color="blue")
+    plt.plot(x_forecast, q50, label="Estimación (p50)", color="orange")
+    plt.fill_between(x_forecast, q10, q90, color="orange", alpha=0.2, label="Banda de confianza (p10-p90)")
+
+    plt.xlabel("Período")
+    plt.ylabel("Valor")
+    plt.title("Predicción con banda de confianza")
+    plt.legend()
+    st.pyplot(plt)
+
 # Ejecución principal
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -84,7 +101,7 @@ if uploaded_file is not None:
             ).choices[0].message.content
             st.markdown("#### 🤖 GPT-4o interpreta el contexto:")
             st.write(gpt_summary)
-        
+
             # Extraer la serie numérica
             series = df.iloc[:, 1].dropna().astype(float).tolist()
 
@@ -109,8 +126,12 @@ if uploaded_file is not None:
                 st.subheader("📈 Predicción")
                 st.dataframe(df_pred, use_container_width=True)
 
+                # Mostrar gráfico
+                st.subheader("📉 Visualización de la predicción")
+                plot_forecast_with_bands(series, q10, q50, q90)
+
             except Exception as e:
-                st.warning("No se pudo generar la tabla de predicción.")
+                st.warning("No se pudo generar la tabla de predicción ni el gráfico.")
                 st.error(e)
 
             # Explicación de los resultados
