@@ -53,11 +53,10 @@ def predict_with_sagemaker(values, prediction_length=5):
 # Función para graficar
 
 def plot_forecast(series, forecast, std_dev=5):
-    forecast = forecast[0] if isinstance(forecast, list) else forecast
+    forecast = np.array(forecast)
     x_orig = list(range(len(series)))
     x_pred = list(range(len(series), len(series) + len(forecast)))
 
-    forecast = np.array(forecast)
     lower_bound = forecast - 1.65 * std_dev
     upper_bound = forecast + 1.65 * std_dev
 
@@ -107,37 +106,45 @@ if uploaded_file is not None:
             st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
-            st.subheader("📈 Predicción")
-            st.write(forecast_result)
+            # Validar formato del resultado
+            forecast_values = forecast_result[0] if isinstance(forecast_result, list) else forecast_result.get("mean", [])
 
-            # Graficar resultados
-            st.subheader("📊 Visualización")
-            plot_forecast(series, forecast_result[0], std_dev=np.std(series[-prediction_length:]))
+            if isinstance(forecast_values, dict):
+                forecast_values = list(forecast_values.values())
 
-            # Generar informe explicativo
-            st.info("🧠 Generando informe explicativo...")
-            explanation_prompt = f"""
-            Se hizo una predicción de series temporales con estos datos:
-            Serie original: {series[-10:]}
-            Predicción: {forecast_result}
+            if not forecast_values:
+                st.warning("⚠️ No se encontraron valores numéricos en la predicción para graficar.")
+            else:
+                st.subheader("📈 Predicción")
+                st.write(forecast_values)
 
-            Contexto: {context}
-            Objetivo del usuario: {goal}
+                st.subheader("📊 Visualización")
+                plot_forecast(series, forecast_values, std_dev=np.std(series[-prediction_length:]))
 
-            Generá un informe simple y claro en español para alguien no experto.
-            Indicá si hay tendencias, estacionalidad o anomalías.
-            """
+                # Generar informe explicativo
+                st.info("🧠 Generando informe explicativo...")
+                explanation_prompt = f"""
+                Se hizo una predicción de series temporales con estos datos:
+                Serie original: {', '.join([str(x) for x in series[-10:]])}
+                Predicción: {', '.join([str(x) for x in forecast_values])}
 
-            explanation = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "Sos un analista que redacta informes claros y concisos para negocio."},
-                    {"role": "user", "content": explanation_prompt}
-                ]
-            ).choices[0].message.content
+                Contexto: {context}
+                Objetivo del usuario: {goal}
 
-            st.subheader("🧾 Informe final")
-            st.write(explanation)
+                Generá un informe simple y claro en español para alguien no experto.
+                Indicá si hay tendencias, estacionalidad o anomalías.
+                """
+
+                explanation = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "Sos un analista que redacta informes claros y concisos para negocio."},
+                        {"role": "user", "content": explanation_prompt}
+                    ]
+                ).choices[0].message.content
+
+                st.subheader("🧾 Informe final")
+                st.write(explanation)
 
         except Exception as e:
             st.error("❌ Ocurrió un error en el análisis")
