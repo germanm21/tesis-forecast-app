@@ -24,7 +24,7 @@ ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-120703"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
-st.title("📈 Forecast con Chronos (SageMaker) + GPT")
+st.title("📈 Smart Forecast")
 st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia artificial lo analice.")
 
 # Cargar archivo CSV
@@ -57,7 +57,7 @@ if uploaded_file is not None:
     if st.button("🚀 Analizar serie temporal") and context and goal:
         try:
             # Usamos ChatGPT para interpretar el objetivo y generar contexto
-            st.info("✍️ Interpretando contexto con GPT-4o...")
+            st.info("✍️ Interpretando contexto...")
             user_prompt = f"""
             El usuario subió esta serie temporal:
             {df.head(10).to_string(index=False)}
@@ -81,14 +81,14 @@ if uploaded_file is not None:
             series = df.iloc[:, 1].dropna().astype(float).tolist()
 
             # Predecir con Chronos desde SageMaker
-            st.info("🔮 Prediciendo con Chronos (SageMaker)...")
+            st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=5)
 
-            st.subheader("📈 Predicción de Chronos")
+            st.subheader("📈 Predicción")
             st.write(forecast_result)
 
             # Explicación de los resultados
-            st.info("🧠 Generando informe explicativo con GPT-4o...")
+            st.info("🧠 Generando informe explicativo...")
             explanation_prompt = f"""
             Se hizo una predicción de series temporales con estos datos:
             Serie original: {series[-10:]}
@@ -108,7 +108,7 @@ if uploaded_file is not None:
                 ]
             ).choices[0].message.content
 
-            st.subheader("🧾 Informe final generado con GPT-4o")
+            st.subheader("🧾 Informe final")
             st.write(explanation)
 
         except Exception as e:
