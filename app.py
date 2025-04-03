@@ -35,7 +35,7 @@ context = st.text_area("📝 Explicá el contexto del problema")
 goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
 prediction_length = st.slider("🔢 ¿Cuántos períodos querés predecir?", min_value=1, max_value=30, value=5)
 
-# Función para predecir desde SageMaker (versión segura sin cuantiles)
+# Función para predecir desde SageMaker (modo simple, sin configuración extra)
 def predict_with_sagemaker(values, prediction_length=5):
     payload = {
         "inputs": [{"target": values}],
@@ -50,9 +50,9 @@ def predict_with_sagemaker(values, prediction_length=5):
 
     return json.loads(response["Body"].read())
 
-# Función para graficar sólo la media
+# Función para graficar la predicción simple
 
-def plot_forecast_simple(series, forecast):
+def plot_forecast(series, forecast):
     forecast = np.array(forecast)
     x_orig = list(range(len(series)))
     x_pred = list(range(len(series), len(series) + len(forecast)))
@@ -115,13 +115,16 @@ if uploaded_file is not None:
                 st.write(forecast_values)
 
                 st.subheader("📊 Visualización")
-                plot_forecast_simple(series, forecast_values)
+                plot_forecast(series, forecast_values)
 
                 # Generar informe explicativo
                 st.info("🧠 Generando informe explicativo...")
+                serie_para_prompt = series if len(series) <= 120 else series[-120:]
+                serie_str = ', '.join([str(x) for x in serie_para_prompt])
+
                 explanation_prompt = f"""
                 Se hizo una predicción de series temporales con estos datos:
-                Serie original: {', '.join([str(x) for x in series[-10:]])}
+                Serie original: {serie_str}
                 Predicción: {', '.join([str(x) for x in forecast_values])}
 
                 Contexto: {context}
