@@ -52,7 +52,7 @@ periodos = {
     "Horaria": 24,
     "Minutal": 60
 }
-periodo_estacional = periodos.get(granularidad, 52)
+periodo_estacional = periodos.get(granularidad, 1)
 
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
