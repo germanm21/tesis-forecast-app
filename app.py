@@ -37,20 +37,20 @@ user_input = st.text_area("Explicá el contexto del problema y qué te gustaría
 # Granularidad seleccionable
 granularidad = st.selectbox(
     "Seleccioná la granularidad de la serie de tiempo",
-    ["anual", "semestral", "trimestral", "mensual", "semanal", "diaria", "horaria", "minutal"],
+    ["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diaria", "Horaria", "Minutal"],
     index=4
 )
 
 # Definir periodicidad
 periodos = {
-    "anual": 1,
-    "semestral": 2,
-    "trimestral": 4,
-    "mensual": 12,
-    "semanal": 52,
-    "diaria": 365,
-    "horaria": 24,
-    "minutal": 60
+    "Anual": 1,
+    "Semestral": 2,
+    "Trimestral": 4,
+    "Mensual": 12,
+    "Semanal": 52,
+    "Diaria": 365,
+    "Horaria": 24,
+    "Minutal": 60
 }
 periodo_estacional = periodos.get(granularidad, 52)
 
