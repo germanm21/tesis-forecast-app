@@ -34,6 +34,26 @@ st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia arti
 uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
 user_input = st.text_area("📝 Explicá el contexto del problema y qué te gustaría conocer o estimar")
 
+# Granularidad seleccionable
+granularidad = st.selectbox(
+    "📅 Seleccioná la granularidad de la serie de tiempo",
+    ["anual", "semestral", "trimestral", "mensual", "semanal", "diaria", "horaria", "minutal"],
+    index=4
+)
+
+# Definir periodicidad
+periodos = {
+    "anual": 1,
+    "semestral": 2,
+    "trimestral": 4,
+    "mensual": 12,
+    "semanal": 52,
+    "diaria": 365,
+    "horaria": 24,
+    "minutal": 60
+}
+periodo_estacional = periodos.get(granularidad, 52)
+
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
     "🔢 ¿Cuántos períodos querés predecir?",
@@ -59,7 +79,7 @@ def predict_with_sagemaker(values, prediction_length=5):
     return json.loads(response["Body"].read())
 
 # Análisis estadístico automatizado
-def generar_resumen_estadistico(serie):
+def generar_resumen_estadistico(serie, periodo):
     try:
         serie_np = pd.Series(serie)
         tendencia = "estable"
@@ -68,7 +88,7 @@ def generar_resumen_estadistico(serie):
         elif serie_np.iloc[-1] < serie_np.iloc[0]:
             tendencia = "decreciente"
 
-        decom = seasonal_decompose(serie_np, model='additive', period=7, extrapolate_trend='freq')
+        decom = seasonal_decompose(serie_np, model='additive', period=periodo, extrapolate_trend='freq')
         estacionalidad_max = np.nanmax(decom.seasonal) - np.nanmin(decom.seasonal)
         tendencia_max = np.nanmax(decom.trend) - np.nanmin(decom.trend)
         var_total = np.var(serie_np)
@@ -77,8 +97,10 @@ def generar_resumen_estadistico(serie):
 
         return (
             f"- Tendencia observada: {tendencia}.\n"
-            f"- Estacionalidad detectada semanalmente. Amplitud: {estacionalidad_max:.2f}.\n"
+            f"- Estacionalidad detectada con periodicidad {granularidad} (aproximadamente cada {periodo} períodos).\n"
+            f"- Amplitud estacional: {estacionalidad_max:.2f}.\n"
             f"- Porcentaje de varianza explicada por la estacionalidad: {porcentaje_estacional:.1f}%.\n"
+            f"- Total de datos utilizados en el análisis: {len(serie)} valores."
         )
     except Exception:
         return "No se pudo calcular la tendencia ni la estacionalidad automáticamente."
@@ -112,22 +134,37 @@ if uploaded_file is not None:
         try:
             full_series = df.iloc[:, 1].dropna().astype(float).tolist()
             series = full_series if len(full_series) <= 120 else full_series[-120:]
-            resumen_datos = pd.DataFrame(series).rename(columns={0: "valor"}).head(10).to_string(index=False)
+            resumen_datos = pd.DataFrame(series).rename(columns={0: "valor"}).to_string(index=False)
 
-            resumen_estadistico = generar_resumen_estadistico(series)
+            resumen_estadistico = generar_resumen_estadistico(series, periodo_estacional)
 
             st.info("✍️ Interpretando contexto...")
 
             user_prompt = (
-                "Actuás como una inteligencia artificial especializada en análisis de series temporales.\n\n"
+                "Actuás como una inteligencia artificial especializada en análisis de series temporales.
+
+"
                 "Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. "
                 "No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. "
-                "Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.\n\n"
+                "Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
+
+"
                 "⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI "
-                "ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.\n\n"
-                f"Resumen estadístico automático:\n{resumen_estadistico}\n\n"
-                f"Contexto y objetivo brindado por el usuario:\n'''{user_input}'''\n\n"
-                f"Este es un resumen de los datos utilizados (máximo 10):\n'''{resumen_datos}'''\n\n"
+                "ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.
+
+"
+                f"Además del análisis general, debés explicar los siguientes resultados estadísticos obtenidos automáticamente:
+{resumen_estadistico}
+
+"
+                f"Contexto y objetivo brindado por el usuario:
+'''{user_input}'''
+
+"
+                f"Estos son todos los valores considerados para el análisis:
+'''{resumen_datos}'''
+
+"
                 "Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse."
             )
 
@@ -152,7 +189,7 @@ if uploaded_file is not None:
                 q90 = pred.get("0.9", [])
 
                 df_pred = pd.DataFrame({
-                    "Día": list(range(1, len(q50)+1)),
+                    "Dato": list(range(1, len(q50)+1)),
                     "Criterio conservador (p10)": q10,
                     "Estimación (p50)": q50,
                     "Criterio optimista (p90)": q90
@@ -173,17 +210,33 @@ if uploaded_file is not None:
 
             explanation_prompt = (
                 "Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. "
-                "Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.\n\n"
-                "⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.\n\n"
-                "Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:\n\n"
-                f"- Serie original utilizada (últimos datos): {serie_str}\n"
-                f"- Resultados de la predicción: {forecast_result}\n"
-                f"- Contexto y objetivo del análisis: {user_input}\n\n"
-                "Brindá un informe en español, claro y directo, explicando:\n"
-                "- Qué representan los valores estimados.\n"
-                "- Si se observa una continuación de la tendencia o un cambio relevante.\n"
-                "- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).\n"
-                "- Cuáles son las principales conclusiones para un usuario que no es experto.\n\n"
+                "Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
+
+"
+                "⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.
+
+"
+                "Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:
+
+"
+                f"- Serie original utilizada (últimos datos): {serie_str}
+"
+                f"- Resultados de la predicción: {forecast_result}
+"
+                f"- Contexto y objetivo del análisis: {user_input}
+
+"
+                "Brindá un informe en español, claro y directo, explicando:
+"
+                "- Qué representan los valores estimados.
+"
+                "- Si se observa una continuación de la tendencia o un cambio relevante.
+"
+                "- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).
+"
+                "- Cuáles son las principales conclusiones para un usuario que no es experto.
+
+"
                 "Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada."
             )
 
