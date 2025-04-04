@@ -27,16 +27,16 @@ ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-120703"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
-st.title("📈 Smart Forecast")
+st.title("Smart Forecast")
 st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia artificial lo analice.")
 
 # Cargar archivo CSV
-uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
-user_input = st.text_area("📝 Explicá el contexto del problema y qué te gustaría conocer o estimar")
+uploaded_file = st.file_uploader("Subí tu archivo CSV con fechas y valores", type=["csv"])
+user_input = st.text_area("Explicá el contexto del problema y qué te gustaría conocer o estimar")
 
 # Granularidad seleccionable
 granularidad = st.selectbox(
-    "📅 Seleccioná la granularidad de la serie de tiempo",
+    "Seleccioná la granularidad de la serie de tiempo",
     ["anual", "semestral", "trimestral", "mensual", "semanal", "diaria", "horaria", "minutal"],
     index=4
 )
@@ -56,7 +56,7 @@ periodo_estacional = periodos.get(granularidad, 52)
 
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
-    "🔢 ¿Cuántos períodos querés predecir?",
+    "¿Cuántos períodos querés predecir?",
     min_value=1,
     max_value=30,
     value=5,
