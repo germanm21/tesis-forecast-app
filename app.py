@@ -60,10 +60,12 @@ def predict_with_sagemaker(values, prediction_length=5):
 # Función para graficar serie original y predicciones con bandas de confianza
 def plot_forecast_with_bands(original_series, q10, q50, q90):
     plt.figure(figsize=(10, 5))
-    x_orig = list(range(len(original_series)))
+    x_orig = list(range(len(original_series) + 1))
     x_forecast = list(range(len(original_series), len(original_series) + len(q50)))
 
-    plt.plot(x_orig, original_series, label="Serie original", color="blue")
+    extended_series = original_series + [q50[0]]  # Extiende la serie con el primer valor estimado para dar continuidad
+
+    plt.plot(x_orig, extended_series, label="Serie original", color="blue")
     plt.plot(x_forecast, q50, label="Estimación (p50)", color="orange")
     plt.fill_between(x_forecast, q10, q90, color="orange", alpha=0.2, label="Banda de confianza (p10-p90)")
 
@@ -165,3 +167,4 @@ if uploaded_file is not None:
         except Exception as e:
             st.error("❌ Ocurrió un error en el análisis")
             st.error(e)
+
