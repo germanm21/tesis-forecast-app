@@ -85,16 +85,33 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar serie temporal") and user_input:
         try:
-            # Usamos ChatGPT para interpretar el objetivo y generar contexto
+            # Usamos IA para interpretar el objetivo y generar contexto
             st.info("✍️ Interpretando contexto...")
             user_prompt = f"""
-            El usuario subió esta serie temporal:
-            {df.head(10).to_string(index=False)}
+Actuás como una inteligencia artificial especializada en análisis de series temporales.
 
-            Contexto y objetivo: {user_input}
+Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
 
-            ¿Podrías confirmar si los datos parecen válidos y sugerir qué podríamos predecir?
-            """
+⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.
+
+Tu análisis debe considerar:
+- Si la cantidad de datos disponibles es suficiente para una predicción confiable.
+- Si hay valores atípicos o inconsistencias que podrían afectar la estimación.
+- Si el formato de los datos parece adecuado o hay alguna oportunidad de mejora.
+- Si se detecta alguna tendencia general en la serie.
+- Si existen señales de estacionalidad o ciclos repetitivos.
+- Cuántos datos se van a utilizar en el análisis (máximo 120 puntos si se excede).
+- Qué condiciones del dataset podrían dificultar el análisis automático o generar predicciones poco confiables.
+
+El usuario te brindó este contexto y objetivo del análisis:
+"""{user_input}"""
+
+Este es un resumen de los primeros valores disponibles:
+"""{df.head(10).to_string(index=False)}"""
+
+Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse.
+"""
+
             gpt_summary = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -102,7 +119,7 @@ if uploaded_file is not None:
                     {"role": "user", "content": user_prompt}
                 ]
             ).choices[0].message.content
-            st.markdown("#### 🤖 GPT-4o interpreta el contexto:")
+            st.markdown("#### 🤖 Análisis preliminar de los datos:")
             st.write(gpt_summary)
 
             # Extraer la serie numérica
@@ -144,14 +161,24 @@ if uploaded_file is not None:
             serie_str = ', '.join([str(x) for x in serie_para_prompt])
 
             explanation_prompt = f"""
-            Se hizo una predicción de series temporales con estos datos:
-            Serie original: {serie_str}
-            Predicción: {forecast_result}
+Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
 
-            Contexto y objetivo del usuario: {user_input}
+⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.
 
-            Generá un informe simple y claro en español para alguien no experto.
-            """
+Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:
+
+- Serie original utilizada (últimos datos): {serie_str}
+- Resultados de la predicción: {forecast_result}
+- Contexto y objetivo del análisis: {user_input}
+
+Brindá un informe en español, claro y directo, explicando:
+- Qué representan los valores estimados.
+- Si se observa una continuación de la tendencia o un cambio relevante.
+- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).
+- Cuáles son las principales conclusiones para un usuario que no es experto.
+
+Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada.
+"""
 
             explanation = client.chat.completions.create(
                 model="gpt-4o",
