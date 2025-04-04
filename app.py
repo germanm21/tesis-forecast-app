@@ -144,7 +144,7 @@ if uploaded_file is not None:
 Actuás como una inteligencia artificial especializada en análisis de series temporales.
 
 Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. 
-No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. 
+No debés sugerir modelos alternativos, modelos predictivos específicos ni mencionar herramientas externas. 
 Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
 
 ⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI 
@@ -159,7 +159,7 @@ Contexto y objetivo brindado por el usuario:
 Estos son todos los valores considerados para el análisis:
 '''{resumen_datos}'''
 
-Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse.
+Tu análisis debe ser claro, concreto y profesional. No debés realizar recomendaciones sobre mejorar modelos ni mencionar si los datos son o no suficientes para el entrenamiento de un modelo. En su lugar, centrate en sugerencias relacionadas con el formato, calidad o limpieza de los datos.
 """
 
             gpt_summary = client.chat.completions.create(
