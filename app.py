@@ -7,6 +7,8 @@ import requests
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from openai import OpenAI
+from statsmodels.tsa.seasonal import seasonal_decompose
+import numpy as np
 
 # Cargar variables de entorno
 load_dotenv()
@@ -56,13 +58,37 @@ def predict_with_sagemaker(values, prediction_length=5):
 
     return json.loads(response["Body"].read())
 
+# Análisis estadístico automatizado
+def generar_resumen_estadistico(serie):
+    try:
+        serie_np = pd.Series(serie)
+        tendencia = "estable"
+        if serie_np.iloc[-1] > serie_np.iloc[0]:
+            tendencia = "creciente"
+        elif serie_np.iloc[-1] < serie_np.iloc[0]:
+            tendencia = "decreciente"
+
+        decom = seasonal_decompose(serie_np, model='additive', period=7, extrapolate_trend='freq')
+        estacionalidad_max = np.nanmax(decom.seasonal) - np.nanmin(decom.seasonal)
+        tendencia_max = np.nanmax(decom.trend) - np.nanmin(decom.trend)
+        var_total = np.var(serie_np)
+        var_estacional = np.var(decom.seasonal)
+        porcentaje_estacional = (var_estacional / var_total * 100) if var_total > 0 else 0
+
+        return (
+            f"- Tendencia observada: {tendencia}.\n"
+            f"- Estacionalidad detectada semanalmente. Amplitud: {estacionalidad_max:.2f}.\n"
+            f"- Porcentaje de varianza explicada por la estacionalidad: {porcentaje_estacional:.1f}%.\n"
+        )
+    except Exception:
+        return "No se pudo calcular la tendencia ni la estacionalidad automáticamente."
+
 # Función para graficar serie original y predicciones con bandas de confianza
 def plot_forecast_with_bands(original_series, q10, q50, q90):
     plt.figure(figsize=(10, 5))
     x_orig = list(range(len(original_series)))
     x_forecast = list(range(len(original_series) - 1, len(original_series) + len(q50)))
 
-    # Insertar último valor de la serie original al inicio de las predicciones para continuidad visual
     q10 = [original_series[-1]] + q10
     q50 = [original_series[-1]] + q50
     q90 = [original_series[-1]] + q90
@@ -77,7 +103,6 @@ def plot_forecast_with_bands(original_series, q10, q50, q90):
     plt.legend()
     st.pyplot(plt)
 
-# Ejecución principal
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("📊 Vista previa de los datos:")
@@ -85,13 +110,14 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar serie temporal") and user_input:
         try:
-            # Extraer la serie numérica
             full_series = df.iloc[:, 1].dropna().astype(float).tolist()
             series = full_series if len(full_series) <= 120 else full_series[-120:]
-
-            # Análisis de contexto con IA
-            st.info("✍️ Interpretando contexto...")
             resumen_datos = pd.DataFrame(series).rename(columns={0: "valor"}).head(10).to_string(index=False)
+
+            resumen_estadistico = generar_resumen_estadistico(series)
+
+            st.info("✍️ Interpretando contexto...")
+
             user_prompt = (
                 "Actuás como una inteligencia artificial especializada en análisis de series temporales.\n\n"
                 "Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. "
@@ -99,15 +125,8 @@ if uploaded_file is not None:
                 "Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.\n\n"
                 "⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI "
                 "ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.\n\n"
-                "Tu análisis debe considerar:\n"
-                "- Si la cantidad de datos disponibles es suficiente para una predicción confiable.\n"
-                "- Si hay valores atípicos o inconsistencias que podrían afectar la estimación.\n"
-                "- Si el formato de los datos parece adecuado o hay alguna oportunidad de mejora.\n"
-                "- Si se detecta alguna tendencia general en la serie.\n"
-                "- Si existen señales de estacionalidad o ciclos repetitivos.\n"
-                "- Cuántos datos se van a utilizar en el análisis (máximo 120 puntos si se excede).\n"
-                "- Qué condiciones del dataset podrían dificultar el análisis automático o generar predicciones poco confiables.\n\n"
-                f"El usuario te brindó este contexto y objetivo del análisis:\n'''{user_input}'''\n\n"
+                f"Resumen estadístico automático:\n{resumen_estadistico}\n\n"
+                f"Contexto y objetivo brindado por el usuario:\n'''{user_input}'''\n\n"
                 f"Este es un resumen de los datos utilizados (máximo 10):\n'''{resumen_datos}'''\n\n"
                 "Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse."
             )
@@ -119,14 +138,13 @@ if uploaded_file is not None:
                     {"role": "user", "content": user_prompt}
                 ]
             ).choices[0].message.content
+
             st.markdown("#### 🤖 Análisis preliminar de los datos:")
             st.write(gpt_summary)
 
-            # Predecir con Chronos desde SageMaker usando el valor elegido
             st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
-            # Mostrar tabla legible (ocultamos el diccionario crudo)
             try:
                 pred = forecast_result["predictions"][0]
                 q10 = pred.get("0.1", [])
@@ -143,7 +161,6 @@ if uploaded_file is not None:
                 st.subheader("📈 Predicción")
                 st.dataframe(df_pred, use_container_width=True)
 
-                # Mostrar gráfico
                 st.subheader("📉 Visualización de la predicción")
                 plot_forecast_with_bands(series, q10, q50, q90)
 
@@ -151,9 +168,7 @@ if uploaded_file is not None:
                 st.warning("No se pudo generar la tabla de predicción ni el gráfico.")
                 st.error(e)
 
-            # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
-
             serie_str = ', '.join([str(x) for x in series])
 
             explanation_prompt = (
