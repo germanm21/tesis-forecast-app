@@ -38,7 +38,7 @@ user_input = st.text_area("Explicá el contexto del problema y qué te gustaría
 granularidad = st.selectbox(
     "Seleccioná la granularidad de la serie de tiempo",
     ["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diaria", "Horaria", "Minutal"],
-    index=4
+    index=0
 )
 
 # Definir periodicidad
