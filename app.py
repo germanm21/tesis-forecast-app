@@ -221,20 +221,15 @@ Brindá un informe en español, claro y directo, explicando:
 - Cuáles son las principales conclusiones para un usuario que no es experto.
 
 Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada.
-""": {serie_str}
-"
-                f"- Resultados de la predicción: {forecast_result}
-"
-                f"- Contexto y objetivo del análisis: {user_input}
+"""
 
-"
-                "Brindá un informe en español, claro y directo, explicando:
-"
-                "- Qué representan los valores estimados.
-"
-                "- Si se observa una continuación de la tendencia o un cambio relevante.
-"
-                "- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).
+            explanation = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "Sos un analista que redacta informes claros y concisos para negocio."},
+                    {"role": "user", "content": explanation_prompt}
+                ]
+            ).choices[0].message.content.
 "
                 "- Cuáles son las principales conclusiones para un usuario que no es experto.
 
