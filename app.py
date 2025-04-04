@@ -85,32 +85,27 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar serie temporal") and user_input:
         try:
-            # Usamos IA para interpretar el objetivo y generar contexto
+            # Análisis de contexto con IA
             st.info("✍️ Interpretando contexto...")
-            user_prompt = f"""
-Actuás como una inteligencia artificial especializada en análisis de series temporales.
-
-Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
-
-⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.
-
-Tu análisis debe considerar:
-- Si la cantidad de datos disponibles es suficiente para una predicción confiable.
-- Si hay valores atípicos o inconsistencias que podrían afectar la estimación.
-- Si el formato de los datos parece adecuado o hay alguna oportunidad de mejora.
-- Si se detecta alguna tendencia general en la serie.
-- Si existen señales de estacionalidad o ciclos repetitivos.
-- Cuántos datos se van a utilizar en el análisis (máximo 120 puntos si se excede).
-- Qué condiciones del dataset podrían dificultar el análisis automático o generar predicciones poco confiables.
-
-El usuario te brindó este contexto y objetivo del análisis:
-"""{user_input}"""
-
-Este es un resumen de los primeros valores disponibles:
-"""{df.head(10).to_string(index=False)}"""
-
-Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse.
-"""
+            user_prompt = (
+                "Actuás como una inteligencia artificial especializada en análisis de series temporales.\n\n"
+                "Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. "
+                "No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. "
+                "Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.\n\n"
+                "⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI "
+                "ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.\n\n"
+                "Tu análisis debe considerar:\n"
+                "- Si la cantidad de datos disponibles es suficiente para una predicción confiable.\n"
+                "- Si hay valores atípicos o inconsistencias que podrían afectar la estimación.\n"
+                "- Si el formato de los datos parece adecuado o hay alguna oportunidad de mejora.\n"
+                "- Si se detecta alguna tendencia general en la serie.\n"
+                "- Si existen señales de estacionalidad o ciclos repetitivos.\n"
+                "- Cuántos datos se van a utilizar en el análisis (máximo 120 puntos si se excede).\n"
+                "- Qué condiciones del dataset podrían dificultar el análisis automático o generar predicciones poco confiables.\n\n"
+                f"El usuario te brindó este contexto y objetivo del análisis:\n'''{user_input}'''\n\n"
+                f"Este es un resumen de los primeros valores disponibles:\n'''{df.head(10).to_string(index=False)}'''\n\n"
+                "Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse."
+            )
 
             gpt_summary = client.chat.completions.create(
                 model="gpt-4o",
@@ -160,25 +155,21 @@ Generá una respuesta clara, concreta y profesional para que el usuario entienda
             serie_para_prompt = series if len(series) <= 120 else series[-120:]
             serie_str = ', '.join([str(x) for x in serie_para_prompt])
 
-            explanation_prompt = f"""
-Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
-
-⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.
-
-Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:
-
-- Serie original utilizada (últimos datos): {serie_str}
-- Resultados de la predicción: {forecast_result}
-- Contexto y objetivo del análisis: {user_input}
-
-Brindá un informe en español, claro y directo, explicando:
-- Qué representan los valores estimados.
-- Si se observa una continuación de la tendencia o un cambio relevante.
-- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).
-- Cuáles son las principales conclusiones para un usuario que no es experto.
-
-Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada.
-"""
+            explanation_prompt = (
+                "Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. "
+                "Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.\n\n"
+                "⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.\n\n"
+                "Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:\n\n"
+                f"- Serie original utilizada (últimos datos): {serie_str}\n"
+                f"- Resultados de la predicción: {forecast_result}\n"
+                f"- Contexto y objetivo del análisis: {user_input}\n\n"
+                "Brindá un informe en español, claro y directo, explicando:\n"
+                "- Qué representan los valores estimados.\n"
+                "- Si se observa una continuación de la tendencia o un cambio relevante.\n"
+                "- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).\n"
+                "- Cuáles son las principales conclusiones para un usuario que no es experto.\n\n"
+                "Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada."
+            )
 
             explanation = client.chat.completions.create(
                 model="gpt-4o",
