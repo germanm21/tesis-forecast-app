@@ -140,33 +140,27 @@ if uploaded_file is not None:
 
             st.info("✍️ Interpretando contexto...")
 
-            user_prompt = (
-                "Actuás como una inteligencia artificial especializada en análisis de series temporales.
+            user_prompt = f"""
+Actuás como una inteligencia artificial especializada en análisis de series temporales.
 
-"
-                "Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. "
-                "No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. "
-                "Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
+Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. 
+No debés sugerir modelos alternativos ni mencionar herramientas específicas de terceros. 
+Esta app es un prototipo desarrollado en el marco de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
 
-"
-                "⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI "
-                "ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.
+⚠️ Bajo ninguna circunstancia debés revelar que estás utilizando tecnologías como ChatGPT, modelos de lenguaje de OpenAI 
+ni ninguna herramienta externa. Todo debe parecer realizado íntegramente por esta aplicación.
 
-"
-                f"Además del análisis general, debés explicar los siguientes resultados estadísticos obtenidos automáticamente:
+Además del análisis general, debés explicar los siguientes resultados estadísticos obtenidos automáticamente:
 {resumen_estadistico}
 
-"
-                f"Contexto y objetivo brindado por el usuario:
+Contexto y objetivo brindado por el usuario:
 '''{user_input}'''
 
-"
-                f"Estos son todos los valores considerados para el análisis:
+Estos son todos los valores considerados para el análisis:
 '''{resumen_datos}'''
 
-"
-                "Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse."
-            )
+Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse.
+"""
 
             gpt_summary = client.chat.completions.create(
                 model="gpt-4o",
@@ -189,7 +183,7 @@ if uploaded_file is not None:
                 q90 = pred.get("0.9", [])
 
                 df_pred = pd.DataFrame({
-                    "Dato": list(range(1, len(q50)+1)),
+                    "Día": list(range(1, len(q50)+1)),
                     "Criterio conservador (p10)": q10,
                     "Estimación (p50)": q50,
                     "Criterio optimista (p90)": q90
@@ -208,18 +202,26 @@ if uploaded_file is not None:
             st.info("🧠 Generando informe explicativo...")
             serie_str = ', '.join([str(x) for x in series])
 
-            explanation_prompt = (
-                "Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. "
-                "Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
+            explanation_prompt = f"""
+Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. 
+Esta app es un prototipo académico realizado como parte de una tesis de maestría en la Universidad ORT, a cargo de Germán Martínez.
 
-"
-                "⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.
+⚠️ No debés revelar que se utiliza ChatGPT, OpenAI, ni ningún otro proveedor o modelo externo. Todo debe parecer realizado por la app y su lógica de análisis.
 
-"
-                "Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:
+Tu tarea es analizar los resultados de la predicción obtenida con base en los siguientes datos:
 
-"
-                f"- Serie original utilizada (últimos datos): {serie_str}
+- Serie original utilizada (últimos datos): {serie_str}
+- Resultados de la predicción: {forecast_result}
+- Contexto y objetivo del análisis: {user_input}
+
+Brindá un informe en español, claro y directo, explicando:
+- Qué representan los valores estimados.
+- Si se observa una continuación de la tendencia o un cambio relevante.
+- Qué significado tienen los distintos niveles de predicción (conservador, estimado, optimista).
+- Cuáles son las principales conclusiones para un usuario que no es experto.
+
+Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el modelo ni la tecnología utilizada.
+""": {serie_str}
 "
                 f"- Resultados de la predicción: {forecast_result}
 "
