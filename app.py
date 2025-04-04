@@ -127,10 +127,10 @@ def plot_forecast_with_bands(original_series, q10, q50, q90):
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    st.write("📊 Vista previa de los datos:")
+    st.write("Vista previa de los datos:")
     st.dataframe(df)
 
-    if st.button("🚀 Analizar serie temporal") and user_input:
+    if st.button("Analizar serie temporal") and user_input:
         try:
             full_series = df.iloc[:, 1].dropna().astype(float).tolist()
             series = full_series if len(full_series) <= 120 else full_series[-120:]
@@ -138,7 +138,7 @@ if uploaded_file is not None:
 
             resumen_estadistico = generar_resumen_estadistico(series, periodo_estacional)
 
-            st.info("✍️ Interpretando contexto...")
+            st.info("Interpretando contexto...")
 
             user_prompt = f"""
 Actuás como una inteligencia artificial especializada en análisis de series temporales.
@@ -170,10 +170,10 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                 ]
             ).choices[0].message.content
 
-            st.markdown("#### 🤖 Análisis preliminar de los datos:")
+            st.markdown("#### Análisis preliminar de los datos:")
             st.write(gpt_summary)
 
-            st.info("🔮 Prediciendo valores futuros...")
+            st.info("Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
             try:
@@ -189,17 +189,17 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                     "Criterio optimista (p90)": q90
                 })
 
-                st.subheader("📈 Predicción")
+                st.subheader("Predicción")
                 st.dataframe(df_pred, use_container_width=True)
 
-                st.subheader("📉 Visualización de la predicción")
+                st.subheader("Visualización de la predicción")
                 plot_forecast_with_bands(series, q10, q50, q90)
 
             except Exception as e:
                 st.warning("No se pudo generar la tabla de predicción ni el gráfico.")
                 st.error(e)
 
-            st.info("🧠 Generando informe explicativo...")
+            st.info("Generando informe explicativo...")
             serie_str = ', '.join([str(x) for x in series])
 
             explanation_prompt = f"""
