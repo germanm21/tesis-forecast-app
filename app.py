@@ -85,8 +85,13 @@ if uploaded_file is not None:
 
     if st.button("🚀 Analizar serie temporal") and user_input:
         try:
+            # Extraer la serie numérica
+            full_series = df.iloc[:, 1].dropna().astype(float).tolist()
+            series = full_series if len(full_series) <= 120 else full_series[-120:]
+
             # Análisis de contexto con IA
             st.info("✍️ Interpretando contexto...")
+            resumen_datos = pd.DataFrame(series).rename(columns={0: "valor"}).head(10).to_string(index=False)
             user_prompt = (
                 "Actuás como una inteligencia artificial especializada en análisis de series temporales.\n\n"
                 "Tu tarea es evaluar los datos que se te presentan para verificar si son adecuados para realizar una predicción. "
@@ -103,7 +108,7 @@ if uploaded_file is not None:
                 "- Cuántos datos se van a utilizar en el análisis (máximo 120 puntos si se excede).\n"
                 "- Qué condiciones del dataset podrían dificultar el análisis automático o generar predicciones poco confiables.\n\n"
                 f"El usuario te brindó este contexto y objetivo del análisis:\n'''{user_input}'''\n\n"
-                f"Este es un resumen de los primeros valores disponibles:\n'''{df.head(10).to_string(index=False)}'''\n\n"
+                f"Este es un resumen de los datos utilizados (máximo 10):\n'''{resumen_datos}'''\n\n"
                 "Generá una respuesta clara, concreta y profesional para que el usuario entienda si sus datos están listos para analizarse y cómo podrían mejorarse."
             )
 
@@ -116,9 +121,6 @@ if uploaded_file is not None:
             ).choices[0].message.content
             st.markdown("#### 🤖 Análisis preliminar de los datos:")
             st.write(gpt_summary)
-
-            # Extraer la serie numérica
-            series = df.iloc[:, 1].dropna().astype(float).tolist()
 
             # Predecir con Chronos desde SageMaker usando el valor elegido
             st.info("🔮 Prediciendo valores futuros...")
@@ -152,8 +154,7 @@ if uploaded_file is not None:
             # Explicación de los resultados
             st.info("🧠 Generando informe explicativo...")
 
-            serie_para_prompt = series if len(series) <= 120 else series[-120:]
-            serie_str = ', '.join([str(x) for x in serie_para_prompt])
+            serie_str = ', '.join([str(x) for x in series])
 
             explanation_prompt = (
                 "Actuás como una inteligencia artificial desarrollada específicamente para interpretar resultados de series temporales. "
