@@ -30,8 +30,7 @@ st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia arti
 
 # Cargar archivo CSV
 uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
-context = st.text_area("📝 Explicá el contexto del problema")
-goal = st.text_area("🎯 ¿Qué te gustaría conocer o estimar?")
+user_input = st.text_area("📝 Explicá el contexto del problema y qué te gustaría conocer o estimar")
 
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
@@ -84,7 +83,7 @@ if uploaded_file is not None:
     st.write("📊 Vista previa de los datos:")
     st.dataframe(df)
 
-    if st.button("🚀 Analizar serie temporal") and context and goal:
+    if st.button("🚀 Analizar serie temporal") and user_input:
         try:
             # Usamos ChatGPT para interpretar el objetivo y generar contexto
             st.info("✍️ Interpretando contexto...")
@@ -92,8 +91,7 @@ if uploaded_file is not None:
             El usuario subió esta serie temporal:
             {df.head(10).to_string(index=False)}
 
-            Contexto: {context}
-            Objetivo: {goal}
+            Contexto y objetivo: {user_input}
 
             ¿Podrías confirmar si los datos parecen válidos y sugerir qué podríamos predecir?
             """
@@ -150,8 +148,7 @@ if uploaded_file is not None:
             Serie original: {serie_str}
             Predicción: {forecast_result}
 
-            Contexto: {context}
-            Objetivo del usuario: {goal}
+            Contexto y objetivo del usuario: {user_input}
 
             Generá un informe simple y claro en español para alguien no experto.
             """
