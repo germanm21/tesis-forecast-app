@@ -27,36 +27,44 @@ ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250403-120703"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
-st.title("Smart Forecast")
+st.title("📈 Smart Forecast")
 st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia artificial lo analice.")
 
 # Cargar archivo CSV
-uploaded_file = st.file_uploader("Subí tu archivo CSV con fechas y valores", type=["csv"])
-user_input = st.text_area("Explicá el contexto del problema y qué te gustaría conocer o estimar")
+st.markdown("""
+### 🗂️ Cómo debe ser el archivo CSV:
+- Debe contener **una columna de fechas** y **una columna de valores numéricos**.
+- El archivo debe estar en formato `.csv` (no Excel).
+- El delimitador debe ser coma `,`. Si usás punto y coma `;`, será detectado automáticamente.
+- Evitá encabezados con símbolos especiales o celdas fusionadas.
+""")
+
+uploaded_file = st.file_uploader("📂 Subí tu archivo CSV con fechas y valores", type=["csv"])
+user_input = st.text_area("📝 Explicá el contexto del problema y qué te gustaría conocer o estimar")
 
 # Granularidad seleccionable
 granularidad = st.selectbox(
-    "Seleccioná la granularidad de la serie de tiempo",
-    ["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diaria", "Horaria", "Minutal"],
-    index=0
+    "📅 Seleccioná la granularidad de la serie de tiempo",
+    ["anual", "semestral", "trimestral", "mensual", "semanal", "diaria", "horaria", "minutal"],
+    index=4
 )
 
 # Definir periodicidad
 periodos = {
-    "Anual": 1,
-    "Semestral": 2,
-    "Trimestral": 4,
-    "Mensual": 12,
-    "Semanal": 52,
-    "Diaria": 365,
-    "Horaria": 24,
-    "Minutal": 60
+    "anual": 1,
+    "semestral": 2,
+    "trimestral": 4,
+    "mensual": 12,
+    "semanal": 52,
+    "diaria": 365,
+    "horaria": 24,
+    "minutal": 60
 }
-periodo_estacional = periodos.get(granularidad, 1)
+periodo_estacional = periodos.get(granularidad, 52)
 
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
-    "¿Cuántos períodos querés predecir?",
+    "🔢 ¿Cuántos períodos querés predecir?",
     min_value=1,
     max_value=30,
     value=5,
@@ -126,11 +134,15 @@ def plot_forecast_with_bands(original_series, q10, q50, q90):
     st.pyplot(plt)
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.write("Vista previa de los datos:")
+    try:
+        df = pd.read_csv(uploaded_file, sep=None, engine="python")
+    except Exception as e:
+        st.error("⚠️ No se pudo leer el archivo CSV. Asegurate de que esté bien formateado, con columnas separadas por comas y sin errores de estructura.")
+        st.stop()
+    st.write("📊 Vista previa de los datos:")
     st.dataframe(df)
 
-    if st.button("Analizar serie temporal") and user_input:
+    if st.button("🚀 Analizar serie temporal") and user_input:
         try:
             full_series = df.iloc[:, 1].dropna().astype(float).tolist()
             series = full_series if len(full_series) <= 120 else full_series[-120:]
@@ -138,7 +150,7 @@ if uploaded_file is not None:
 
             resumen_estadistico = generar_resumen_estadistico(series, periodo_estacional)
 
-            st.info("Interpretando contexto...")
+            st.info("✍️ Interpretando contexto...")
 
             user_prompt = f"""
 Actuás como una inteligencia artificial especializada en análisis de series temporales.
@@ -170,10 +182,10 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                 ]
             ).choices[0].message.content
 
-            st.markdown("#### Análisis preliminar de los datos:")
+            st.markdown("#### 🤖 Análisis preliminar de los datos:")
             st.write(gpt_summary)
 
-            st.info("Prediciendo valores futuros...")
+            st.info("🔮 Prediciendo valores futuros...")
             forecast_result = predict_with_sagemaker(series, prediction_length=prediction_length)
 
             try:
@@ -189,17 +201,17 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                     "Criterio optimista (p90)": q90
                 })
 
-                st.subheader("Predicción")
+                st.subheader("📈 Predicción")
                 st.dataframe(df_pred, use_container_width=True)
 
-                st.subheader("Visualización de la predicción")
+                st.subheader("📉 Visualización de la predicción")
                 plot_forecast_with_bands(series, q10, q50, q90)
 
             except Exception as e:
                 st.warning("No se pudo generar la tabla de predicción ni el gráfico.")
                 st.error(e)
 
-            st.info("Generando informe explicativo...")
+            st.info("🧠 Generando informe explicativo...")
             serie_str = ', '.join([str(x) for x in series])
 
             explanation_prompt = f"""
