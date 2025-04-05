@@ -45,22 +45,22 @@ user_input = st.text_area("📝 Explicá el contexto del problema y qué te gust
 # Granularidad seleccionable
 granularidad = st.selectbox(
     "📅 Seleccioná la granularidad de la serie de tiempo",
-    ["anual", "semestral", "trimestral", "mensual", "semanal", "diaria", "horaria", "minutal"],
-    index=4
+    ["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diaria", "Horaria", "Minutal"],
+    index=0
 )
 
 # Definir periodicidad
 periodos = {
-    "anual": 1,
-    "semestral": 2,
-    "trimestral": 4,
-    "mensual": 12,
-    "semanal": 52,
-    "diaria": 365,
-    "horaria": 24,
-    "minutal": 60
+    "Anual": 1,
+    "Semestral": 2,
+    "Trimestral": 4,
+    "Mensual": 12,
+    "Semanal": 52,
+    "Diaria": 365,
+    "Horaria": 24,
+    "Minutal": 60
 }
-periodo_estacional = periodos.get(granularidad, 52)
+periodo_estacional = periodos.get(granularidad, 1)
 
 # Nuevo slider para seleccionar prediction_length
 prediction_length = st.slider(
@@ -182,7 +182,7 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                 ]
             ).choices[0].message.content
 
-            st.markdown("#### 🤖 Análisis preliminar de los datos:")
+            st.markdown("#### Análisis preliminar de los datos:")
             st.write(gpt_summary)
 
             st.info("🔮 Prediciendo valores futuros...")
@@ -201,10 +201,10 @@ Tu análisis debe ser claro, concreto y profesional. No debés realizar recomend
                     "Criterio optimista (p90)": q90
                 })
 
-                st.subheader("📈 Predicción")
+                st.subheader("Predicción")
                 st.dataframe(df_pred, use_container_width=True)
 
-                st.subheader("📉 Visualización de la predicción")
+                st.subheader("Visualización de la predicción")
                 plot_forecast_with_bands(series, q10, q50, q90)
 
             except Exception as e:
@@ -243,7 +243,7 @@ Evitá tecnicismos innecesarios, sé concreto, y no incluyas detalles sobre el m
                 ]
             ).choices[0].message.content
 
-            st.subheader("🧾 Informe final")
+            st.subheader("Informe final")
             st.write(explanation)
 
         except Exception as e:
