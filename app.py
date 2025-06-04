@@ -10,12 +10,18 @@ from openai import OpenAI
 from statsmodels.tsa.seasonal import seasonal_decompose
 import numpy as np
 
-# Cargar variables de entorno
+# Cargar variables de entorno desde .env
 load_dotenv()
 
-# Configurar clientes de OpenAI y AWS SageMaker
+# Diagnóstico (opcional): mostrar qué credenciales se están usando
+st.sidebar.markdown("### Diagnóstico AWS (temporal)")
+st.sidebar.write("🔑 Región:", os.getenv("AWS_REGION"))
+st.sidebar.write("🔑 Access Key:", os.getenv("AWS_ACCESS_KEY_ID")[:6] + "•••")
+
+# Configurar cliente OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Configurar cliente SageMaker
 sagemaker_runtime = boto3.client(
     "sagemaker-runtime",
     region_name=os.getenv("AWS_REGION"),
@@ -23,6 +29,7 @@ sagemaker_runtime = boto3.client(
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
 )
 
+# Nombre del endpoint
 ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250604-022759"
 
 # Streamlit config

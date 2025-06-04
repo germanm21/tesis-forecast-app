@@ -1,4 +1,4 @@
-#!/Users/german/Desktop/tesis-forecast-app/venv/bin/python
+#!/Users/german/Desktop/tesis-forecast-app/venv/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys
