@@ -14,11 +14,6 @@ import numpy as np
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-# Diagnóstico (opcional): mostrar qué credenciales se están usando
-st.sidebar.markdown("### Diagnóstico AWS (temporal)")
-st.sidebar.write("🔑 Región:", os.getenv("AWS_REGION"))
-st.sidebar.write("🔑 Access Key:", os.getenv("AWS_ACCESS_KEY_ID")[:6] + "•••")
-
 # Configurar cliente OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
