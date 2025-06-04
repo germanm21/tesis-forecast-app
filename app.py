@@ -27,7 +27,7 @@ ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250604-022759"
 
 # Streamlit config
 st.set_page_config(page_title="Forecast App", layout="centered")
-st.title("📈 Smart Forecast 3")
+st.title("📈 Smart Forecast 2")
 st.markdown("Subí tu CSV, explicá tu problema y dejá que la inteligencia artificial lo analice.")
 
 # Cargar archivo CSV
