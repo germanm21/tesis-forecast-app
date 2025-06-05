@@ -26,7 +26,7 @@ sagemaker_runtime = boto3.client(
 )
 
 # Nombre del endpoint
-ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250604-022759"
+ENDPOINT_NAME = "jumpstart-dft-autogluon-forecasting-20250605-132259"
 
 # Streamlit config
 
